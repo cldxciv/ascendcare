@@ -1,7 +1,30 @@
-import { ArrowRight, Heart, Users, Star, CheckCircle } from 'lucide-react'
+'use client'
+
+import { ArrowRight, Heart, Users, Star, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { prisma } from '@/lib/prisma'
+import { useState, useEffect } from 'react'
+
+const heroSlides = [
+  {
+    title: 'Evidence-Based, Heart-Led',
+    subtitle: 'Your Journey, Our Support. Reach New Heights',
+    description: 'Comprehensive ABA programs designed to help children build skills, develop independence, and achieve their full potential.',
+    image: '/ABA therapy website image.jpg'
+  },
+  {
+    title: 'Early Intervention, Lasting Impact',
+    subtitle: 'Building Foundations for Success',
+    description: 'Specialized early intervention programs that make a meaningful difference in your child\'s developmental journey.',
+    image: '/Speech therapy image 1.jpg'
+  },
+  {
+    title: 'Social Skills, Real Connections',
+    subtitle: 'Helping Children Thrive Together',
+    description: 'Group programs designed to help children develop meaningful friendships and essential social skills.',
+    image: '/social-skills.png'
+  }
+]
 
 const latestPosts = [
   {
@@ -30,41 +53,43 @@ const latestPosts = [
   }
 ]
 
-export default async function HomePage() {
-  const services = await prisma.service.findMany({
-    where: { active: true },
-    orderBy: { name: 'asc' },
-    take: 6
-  })
+export default function HomePage() {
+  const [currentSlide, setCurrentSlide] = useState(0)
+  const [services, setServices] = useState([])
 
-  // Fetch page content
-  const pageContent = await prisma.pageContent.findUnique({
-    where: { page: 'home' }
-  })
+  useEffect(() => {
+    fetch('/api/admin/services')
+      .then(res => res.json())
+      .then(data => setServices(data.filter((s: any) => s.active).slice(0, 6)))
+  }, [])
 
-  const heroContent = pageContent?.content?.hero || {
-    title: 'Evidence-Based, Heart-Led',
-    subtitle: 'Your Journey, Our Support. Reach New Heights',
-    description: 'Comprehensive ABA programs designed to help children build skills, develop independence, and achieve their full potential.',
-    image: '/ABA therapy website image.jpg'
-  }
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length)
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [])
 
-  const titleParts = heroContent.title?.split(',') || ['Evidence-Based', 'Heart-Led']
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % heroSlides.length)
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length)
+
+  const slide = heroSlides[currentSlide]
+  const titleParts = slide.title.split(',')
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-amber-50 to-indigo-100 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
+      {/* Hero Carousel Section */}
+      <section className="relative bg-gradient-to-br from-amber-50 to-indigo-100 py-20 min-h-[600px] flex items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[500px]">
+            <div className="flex flex-col justify-center">
               <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
                 {titleParts[0]},
-                <span className="text-amber-300 block">{titleParts[1]?.trim() || 'Heart-Led'}</span>
+                <span className="text-amber-300 block">{titleParts[1]?.trim()}</span>
               </h1>
               <p className="text-xl text-gray-600 mb-8">
-                {heroContent.subtitle && `${heroContent.subtitle} `}
-                {heroContent.description}
+                {slide.subtitle && `${slide.subtitle} `}
+                {slide.description}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link 
@@ -81,16 +106,49 @@ export default async function HomePage() {
                 </Link>
               </div>
             </div>
-            <div className="relative">
-              <Image
-                src={heroContent.image}
-                alt="ABA Therapy Session"
-                width={600}
-                height={400}
-                className="rounded-lg shadow-lg"
-                priority
-              />
+            <div className="relative flex items-center justify-center">
+              <div className="relative w-full h-[400px]">
+                <Image
+                  src={slide.image}
+                  alt="ABA Therapy Session"
+                  fill
+                  className="rounded-lg shadow-lg object-cover"
+                  priority
+                />
+              </div>
             </div>
+          </div>
+          
+          {/* Carousel Controls */}
+          <div className="flex items-center justify-center gap-4 mt-8">
+            <button
+              onClick={prevSlide}
+              className="p-2 rounded-full bg-white shadow-lg hover:bg-gray-100 transition-colors"
+              aria-label="Previous slide"
+            >
+              <ChevronLeft className="w-6 h-6 text-amber-300" />
+            </button>
+            
+            <div className="flex gap-2">
+              {heroSlides.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentSlide(index)}
+                  className={`w-3 h-3 rounded-full transition-colors ${
+                    index === currentSlide ? 'bg-amber-300' : 'bg-gray-300'
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
+              ))}
+            </div>
+            
+            <button
+              onClick={nextSlide}
+              className="p-2 rounded-full bg-white shadow-lg hover:bg-gray-100 transition-colors"
+              aria-label="Next slide"
+            >
+              <ChevronRight className="w-6 h-6 text-amber-300" />
+            </button>
           </div>
         </div>
       </section>
